@@ -15,6 +15,25 @@ import os
 import sys
 import threading
 
+# Принудительно включаем UTF-8 (на хостингах без настроенной локали
+# кириллица иначе превращается в "?" и бот не может отвечать по-русски).
+if hasattr(sys, "setdefaultencoding"):
+    pass  # Python 2 не поддерживаем, но код не должен падать
+if os.name == "nt":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+else:
+    try:
+        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+
 # Кладём корень проекта в sys.path, чтобы бот работал из любой папки
 # (и при двойном клике по файлу, и из командной строки).
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
