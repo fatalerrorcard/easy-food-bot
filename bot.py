@@ -225,9 +225,14 @@ async def notify_subscribers(bot: Bot):
 async def main():
     global bot
     if not BOT_TOKEN:
+        log.critical(
+            "ТОКЕН НЕ ЗАДАН! Откройте файл %s и впишите строку BOT_TOKEN=ваш_токен "
+            "из @BotFather, затем перезапустите сервис.",
+            _ENV_PATH,
+        )
         raise SystemExit(
-            "Не задан токен. Положите его в переменную окружения BOT_TOKEN "
-            "или создайте файл .env рядом с проектом с строкой:\nBOT_TOKEN=ваш_токен"
+            "Нет BOT_TOKEN. Укажите его в файле .env рядом с bot.py "
+            "(BOT_TOKEN=ваш_токен из @BotFather)."
         )
     bot = Bot(token=BOT_TOKEN)
     try:
