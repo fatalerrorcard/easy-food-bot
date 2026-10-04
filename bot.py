@@ -230,7 +230,13 @@ async def main():
             "или создайте файл .env рядом с проектом с строкой:\nBOT_TOKEN=ваш_токен"
         )
     bot = Bot(token=BOT_TOKEN)
-    log.info("Бот запущен (поллинг). Нажмите Ctrl+C для остановки.")
+    try:
+        me = await bot.get_me()
+    except Exception as e:
+        log.error("Не удалось подключиться к Telegram (проверьте токен!): %s", e)
+        raise SystemExit(1) from e
+    log.info("Бот запущен: @%s (%s)", me.username, me.full_name)
+    log.info("Поллинг начат. Нажмите Ctrl+C для остановки.")
     try:
         # Запускаем поллинг. Если он упадёт - перехватим и залогируем,
         # чтобы systemd мог перезапустить бота, а не оставлять его "мёртвым".
