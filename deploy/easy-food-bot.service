@@ -1,0 +1,29 @@
+[Unit]
+Description=Easy Food Bot (lёgkaya eda)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Папка, куда клонируется репозиторий на сервере:
+WorkingDirectory=/opt/easy-food-bot
+EnvironmentFile=/opt/easy-food-bot/.env
+# Путь к python в venv, созданном на сервере:
+ExecStart=/opt/easy-food-bot/venv/bin/python -u /opt/easy-food-bot/bot.py
+Restart=always
+RestartSec=5
+# После слишком частых падений (более 5 за 10 сек) дать процессу отдохнуть
+StartLimitIntervalSec=60
+StartLimitBurst=5
+# Токен и данные не должны быть доступны всем
+User=www-data
+Group=www-data
+# Безопасность
+NoNewPrivileges=true
+ProtectSystem=full
+# Логи в journald
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
