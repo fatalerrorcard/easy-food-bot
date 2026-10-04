@@ -1,0 +1,27 @@
+# Секреты — НИКОГДА не загружать!
+.env
+*.env
+!*.env.example
+
+# Личные данные подписчиков (chat_id)
+subscribers.json
+
+# Логи
+logs/
+*.log
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Windows / ОС
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Файлы сборки
+build/
+dist/
+*.egg-info/
