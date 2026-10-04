@@ -111,6 +111,17 @@ bot = None
 dp = Dispatcher()
 
 
+# Рассылает уведомление о запуске всем подписчикам после успешного старта поллинга.
+@dp.startup()
+async def on_startup() -> None:
+    if bot is None:
+        return
+    try:
+        await notify_subscribers(bot)
+    except Exception as e:
+        log.error("Ошибка рассылки о запуске: %s", e, exc_info=True)
+
+
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     _add_subscriber(message.chat.id)
@@ -221,12 +232,13 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     log.info("Бот запущен (поллинг). Нажмите Ctrl+C для остановки.")
     try:
-        # Запускаем поллинг, дожидаемся старта, затем рассылаем уведомления
-        polling_task = asyncio.create_task(dp.start_polling(bot))
-        # даём боту пару секунд, чтобы подключиться
-        await asyncio.sleep(1.5)
-        await notify_subscribers(bot)
-        await polling_task
+        # Запускаем поллинг. Если он упадёт - перехватим и залогируем,
+        # чтобы systemd мог перезапустить бота, а не оставлять его "мёртвым".
+        try:
+            await dp.start_polling(bot)
+        except Exception as e:
+            log.error("Ошибка поллинга: %s", e, exc_info=True)
+            raise
     finally:
         await bot.session.close()
 
