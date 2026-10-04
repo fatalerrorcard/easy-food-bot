@@ -69,11 +69,11 @@ except ImportError:  # python-dotenv не установлен — просто 
     pass
 
 try:
+    # Плоская структура (сервер, хостинг): python bot.py
+    import matcher
+except ImportError:
     # Запуск как пакет: python -m easy_bot.bot
     from easy_bot import matcher
-except ImportError:
-    # Плоская структура на сервере: python bot.py
-    import matcher
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)

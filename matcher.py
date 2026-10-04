@@ -6,19 +6,35 @@
 бот нормализует их (приводит словоформы к корню) и ищет рецепт,
 где бОльшая часть ключевых ингредиентов совпадает.
 """
+import importlib.util
+import os
 import re
 import unicodedata
 
-try:
-    # Вариант 1: запуск как пакет (python -m easy_bot.bot)
-    from .data import recipes as _data
-except ImportError:
+# ---------------------------------------------------------------------------
+# Загрузка базы рецептов из data/recipes.py по файловому пути.
+# Это надёжнее, чем `from data import recipes` — на некоторых хостингах
+# имя `data` конфликтует со встроенными модулями Python, и падает ImportError.
+# ---------------------------------------------------------------------------
+_RECIPES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "recipes.py")
+
+
+def _load_recipes():
+    if os.path.exists(_RECIPES_PATH):
+        spec = importlib.util.spec_from_file_location("recipes", _RECIPES_PATH)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.BUNDLE
+    # Резервный вариант (например, запуск из пакета easy_bot)
     try:
-        # Вариант 2: запуск из папки-родителя (python -m easy_bot.bot)
         from easy_bot.data import recipes as _data
+        return _data.BUNDLE
     except ImportError:
-        # Вариант 3: плоская структура на сервере (bot.py в корне репо)
-        from data import recipes as _data
+        from .data import recipes as _data
+        return _data.BUNDLE
+
+
+_data_bundle = _load_recipes()
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +112,7 @@ def normalize_ingredients(ingredients: list) -> list:
 
 # Перед сопоставлением нормализуем базу рецептов один раз.
 _RECIPE_NORMS = []
-for rec in _data.BUNDLE:
+for rec in _data_bundle:
     _RECIPE_NORMS.append(
         {
             "orig": rec,
