@@ -10,9 +10,15 @@ import re
 import unicodedata
 
 try:
+    # Вариант 1: запуск как пакет (python -m easy_bot.bot)
     from .data import recipes as _data
-except ImportError:  # запуск напрямую (например pytest)
-    from easy_bot.data import recipes as _data
+except ImportError:
+    try:
+        # Вариант 2: запуск из папки-родителя (python -m easy_bot.bot)
+        from easy_bot.data import recipes as _data
+    except ImportError:
+        # Вариант 3: плоская структура на сервере (bot.py в корне репо)
+        from data import recipes as _data
 
 
 # ---------------------------------------------------------------------------
