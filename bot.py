@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import sys
+import threading
 
 # Кладём корень проекта в sys.path, чтобы бот работал из любой папки
 # (и при двойном клике по файлу, и из командной строки).
@@ -222,18 +223,54 @@ async def notify_subscribers(bot: Bot):
     log.info("Рассылка о запуске: отправлено %d из %d подписчиков.", sent, len(subscribers))
 
 
+def start_http_server():
+    """Запускает лёгкий HTTP-сервер для health-check на PaaS-хостингах.
+
+    Многие хостинги ботов (Bothost и др.) проверяют, жив ли процесс,
+    запросом на порт из переменной PORT. Без него платформа может
+    посчитать приложение мёртвым и перезапускать/отключать его.
+    Сервер отвечает 200 OK на любой запрос.
+    """
+    try:
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    except Exception:
+        return
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(b"OK - bot is alive")
+            self.log_message = lambda *a, **k: None  # не спамить в логи
+
+        do_HEAD = do_GET
+
+    port = int(os.environ.get("PORT", "8080"))
+    try:
+        server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    except OSError as e:
+        log.warning("Не удалось поднять health-сервер на порту %s: %s", port, e)
+        return
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    log.info("Health-check HTTP-сервер запущен на порту %s", port)
+
+
 async def main():
     global bot
     if not BOT_TOKEN:
         log.critical(
-            "ТОКЕН НЕ ЗАДАН! Откройте файл %s и впишите строку BOT_TOKEN=ваш_токен "
-            "из @BotFather, затем перезапустите сервис.",
-            _ENV_PATH,
+            "ТОКЕН НЕ ЗАДАН! Переменная окружения BOT_TOKEN пуста. "
+            "Задайте BOT_TOKEN в настройках хостинга (или в .env рядом с bot.py).",
         )
         raise SystemExit(
-            "Нет BOT_TOKEN. Укажите его в файле .env рядом с bot.py "
-            "(BOT_TOKEN=ваш_токен из @BotFather)."
+            "Нет BOT_TOKEN. Укажите его в переменной окружения хостинга "
+            "или в .env рядом с bot.py (BOT_TOKEN=ваш_токен из @BotFather)."
         )
+    # Поднимаем health-check сервер до старта поллинга
+    start_http_server()
+
     bot = Bot(token=BOT_TOKEN)
     try:
         me = await bot.get_me()
@@ -244,7 +281,7 @@ async def main():
     log.info("Поллинг начат. Нажмите Ctrl+C для остановки.")
     try:
         # Запускаем поллинг. Если он упадёт - перехватим и залогируем,
-        # чтобы systemd мог перезапустить бота, а не оставлять его "мёртвым".
+        # чтобы платформа могла перезапустить бота, а не оставлять мёртвым.
         try:
             await dp.start_polling(bot)
         except Exception as e:
